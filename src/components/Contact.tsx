@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { base_url, period_days_24 } from "../utils/constants";
 import ModalWindow from "./ModalWindow";
+import ErrorPage from "./ErrorPage";
+import { characters } from "../utils/characters";
 
 type Form = {
     firstname: string;
@@ -10,8 +13,10 @@ type Form = {
 };
 
 const Contact = () => {
-    const [planets, setPlanets] = useState<string[]>(["Loading..."]);
+    const { heroId } = useParams();
+    const [planets, setPlanets] = useState<string[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState<Form>({
         firstname: "",
         lastname: "",
@@ -19,46 +24,63 @@ const Contact = () => {
         subject: "",
     });
 
+    // 👉 проверяем heroId
+    if (heroId && !(heroId.toLowerCase() in characters)) {
+        return <ErrorPage />;
+    }
+
     const fillPlanets = async (url: string) => {
         try {
-            const r = await fetch(url);
-            const data: { name: string }[] = await r.json();
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const data: any = await res.json();
+            if (!Array.isArray(data) || !data.every((d) => d && d.name)) {
+                throw new Error("Unexpected API format");
+            }
             const list = data.map((d) => d.name);
             setPlanets(list);
-            // выбрать первую планету по умолчанию
             setFormData((f) => ({ ...f, planet: f.planet || list[0] || "" }));
-
-            localStorage.setItem(
-                "planets",
-                JSON.stringify({ payload: list, time: Date.now() })
-            );
-        } catch (e) {
-            console.error(e);
-            setPlanets(["Endor", "Tatooine", "Naboo"]); // graceful fallback
+            localStorage.setItem("planets", JSON.stringify({ payload: list, time: Date.now() }));
+            setError(null);
+        } catch (e: any) {
+            console.error("Ошибка загрузки планет:", e);
+            setError("Ошибка загрузки планет. Показан запасной список.");
+            setPlanets(["Endor", "Tatooine", "Naboo"]);
+            setFormData((f) => ({ ...f, planet: "Endor" }));
         }
     };
 
     useEffect(() => {
         const raw = localStorage.getItem("planets");
         if (raw) {
-            const cached = JSON.parse(raw) as { payload: string[]; time: number };
-            if (cached && Date.now() - cached.time < period_days_24) {
-                setPlanets(cached.payload);
-                setFormData((f) => ({ ...f, planet: cached.payload[0] || f.planet }));
-                return;
+            try {
+                const cached = JSON.parse(raw) as { payload: string[]; time: number };
+                if (cached && Date.now() - cached.time < period_days_24) {
+                    setPlanets(cached.payload);
+                    setFormData((f) => ({ ...f, planet: cached.payload[0] || f.planet }));
+                    return;
+                }
+            } catch (e) {
+                console.warn("Ошибка чтения кеша:", e);
             }
         }
         fillPlanets(`${base_url}/v1/planets`);
     }, []);
 
     const onChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+        e: React.ChangeEvent<
+            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >
     ) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const onSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setIsOpen(true);
     };
+
+    if (!planets.length) {
+        return <ErrorPage />;
+    }
 
     return (
         <>
@@ -67,10 +89,18 @@ const Contact = () => {
                     onSubmit={onSubmit}
                     className="w-full max-w-3xl rounded-2xl border border-white/10 bg-gray-900/70 p-8 shadow-2xl ring-1 ring-white/10"
                 >
-                    <h2 className="text-2xl font-extrabold text-yellow-400">Contact Form</h2>
+                    <h2 className="text-2xl font-extrabold text-yellow-400">
+                        Contact Form
+                    </h2>
                     <p className="mb-6 text-sm text-gray-300">
                         Fill out the form below to send us a holomail.
                     </p>
+
+                    {error && (
+                        <div className="mb-4 rounded-lg bg-red-500/15 text-red-200 px-4 py-2">
+                            {error}
+                        </div>
+                    )}
 
                     <div className="grid gap-5 md:grid-cols-2">
                         <label className="block">

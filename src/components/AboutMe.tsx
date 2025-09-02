@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { characters } from "../utils/characters";
 import { useHeroContext } from "../utils/useContext";
+import ErrorPage from "./ErrorPage";
 
 type ApiCharacter = {
     name?: string;
@@ -17,7 +18,8 @@ const AboutMe = () => {
     const { heroId } = useParams();
     const { hero, setHero } = useHeroContext();
 
-    const key = (heroId ?? hero ?? "luke").toLowerCase();
+    // используем heroId из URL, иначе контекст, иначе дефолт "luke"
+    const key = heroId ? heroId.toLowerCase() : (hero ?? "luke").toLowerCase();
     const current = characters[key];
 
     const [data, setData] = useState<ApiCharacter | null>(null);
@@ -25,8 +27,10 @@ const AboutMe = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (characters[key]) setHero(key);
-    }, [key, setHero]);
+        if (current) {
+            setHero(key);
+        }
+    }, [key, current, setHero]);
 
     useEffect(() => {
         if (!current?.url) {
@@ -44,7 +48,6 @@ const AboutMe = () => {
                 const res = await fetch(current.url, { signal: ctrl.signal });
 
                 if (!res.ok) {
-
                     setError("Failed to load character from API");
                     setData(null);
                     return;
@@ -56,7 +59,6 @@ const AboutMe = () => {
                 if ((e as any)?.name !== "AbortError") {
                     setError("Network error. Showing local data.");
                 }
-
             } finally {
                 setLoading(false);
             }
@@ -67,33 +69,28 @@ const AboutMe = () => {
 
     const rows = useMemo(
         () => [
-            { label: "Name",       value: data?.name ?? current?.name },
-            { label: "Height",     value: data?.height },
+            { label: "Name", value: data?.name ?? current?.name },
+            { label: "Height", value: data?.height },
             { label: "Birth Year", value: data?.birth_year },
-            { label: "Gender",     value: data?.gender },
-            { label: "Mass",       value: data?.mass },
+            { label: "Gender", value: data?.gender },
+            { label: "Mass", value: data?.mass },
             { label: "Skin color", value: data?.skin_color },
-            { label: "Eye color",  value: data?.eye_color },
+            { label: "Eye color", value: data?.eye_color },
         ],
         [data, current?.name]
     );
 
-    if (!current) {
-        return (
-            <main className="max-w-6xl mx-auto px-4 py-12 text-white">
-                <h2 className="text-2xl font-bold">Hero not found</h2>
-                <Link to="/home/luke" className="text-yellow-300 underline mt-3 inline-block">
-                    Go to Luke
-                </Link>
-            </main>
-        );
+    // 👉 Показываем ErrorPage, если heroId есть в URL, но такого персонажа нет
+    if (heroId && !current) {
+        return <ErrorPage />;
     }
 
     return (
         <main className="max-w-6xl mx-auto px-4 py-10 text-white">
-
             <nav className="text-sm text-white/70 mb-6">
-                <Link to={`/home/${key}`} className="hover:text-white">Home</Link>
+                <Link to={`/home/${key}`} className="hover:text-white">
+                    Home
+                </Link>
                 <span className="mx-2">•</span>
                 <span>About Me</span>
             </nav>
@@ -102,10 +99,8 @@ const AboutMe = () => {
                 {current.name}
             </h1>
 
-
             <section className="rounded-3xl bg-white/5 ring-1 ring-white/10 backdrop-blur-sm p-6 md:p-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {/* аватар слева (на md+) */}
                     <div className="md:col-span-1 flex justify-center">
                         <img
                             src={current.img}
@@ -114,9 +109,7 @@ const AboutMe = () => {
                         />
                     </div>
 
-
                     <div className="md:col-span-2">
-                        {/* состояния загрузки/ошибки */}
                         {loading && (
                             <div className="mb-4 text-white/80">Loading character…</div>
                         )}

@@ -1,28 +1,19 @@
-import { useContext, useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
+// src/components/Home.tsx
 import Hero from "./Hero";
 import DreamTeam from "./DreamTeam";
 import FarGalaxy from "./FarGalaxy";
-import { characters } from "../utils/characters";
-import { defaultHero, navItems } from "../utils/constants";
-import { HeroContext } from "../utils/useContext";
+import { useErrorPage } from "../hooks/useErrorPage";
+import ErrorPage from "./ErrorPage";
 
 const Home = () => {
-    const { heroId } = useParams();
-    const { setHero } = useContext(HeroContext)!;
-    const navigate = useNavigate();
+    const { isErrorPage } = useErrorPage();
 
-    useEffect(() => {
-        if (heroId && Object.keys(characters).includes(heroId)) {
-            setHero(heroId);
-        } else {
-            navigate(`/${navItems[0].route}/${defaultHero}`, { replace: true });
-        }
-    }, [heroId]);
+    if (isErrorPage) {
+        return <ErrorPage />;
+    }
 
     return (
         <main className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8 py-8 space-y-10">
-
             <section className="grid grid-cols-12 gap-6 items-start">
                 <div className="col-span-12 lg:col-span-7">
                     <Hero />

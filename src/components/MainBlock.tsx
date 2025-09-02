@@ -1,10 +1,12 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import Home from "./Home";
 import AboutMe from "./AboutMe";
 import StarWars from "./StarWars";
 import Contact from "./Contact";
+import ErrorPage from "./ErrorPage";
 import { navItems } from "../utils/constants";
 import { useHeroContext } from "../utils/useContext";
+import { characters } from "../utils/characters";
 
 const RedirectHome = () => {
     const { hero } = useHeroContext();
@@ -24,6 +26,16 @@ const RedirectContact = () => {
     return <Navigate to={`/${navItems[3].route}/${key}`} replace />;
 };
 
+const ContactWrapper = () => {
+    const { heroId } = useParams();
+
+    if (heroId && !(heroId.toLowerCase() in characters)) {
+        return <ErrorPage />;
+    }
+
+    return <Contact />;
+};
+
 const MainBlock = () => {
     return (
         <Routes>
@@ -38,9 +50,11 @@ const MainBlock = () => {
             <Route path={`${navItems[2].route}/:heroId`} element={<StarWars />} />
 
             <Route path={`${navItems[3].route}`} element={<RedirectContact />} />
-            <Route path={`${navItems[3].route}/:heroId`} element={<Contact />} />
 
-            <Route path="*" element={<RedirectHome />} />
+            <Route path={`${navItems[3].route}/:heroId`} element={<ContactWrapper />} />
+
+
+            <Route path="*" element={<ErrorPage />} />
         </Routes>
     );
 };
