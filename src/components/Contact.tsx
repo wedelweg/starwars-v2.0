@@ -146,7 +146,6 @@ const Contact = () => {
                 </form>
             </div>
 
-            {/* Модалка с данными формы */}
             <ModalWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
                 <h3 className="mb-3 text-xl font-bold text-yellow-400">Your holomail</h3>
                 <div className="space-y-1 text-gray-100">

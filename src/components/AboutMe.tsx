@@ -1,35 +1,33 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { useHeroContext } from "../utils/useContext";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import { characters } from "../utils/characters";
+import { useHeroContext } from "../utils/useContext";
 
-type CharacterApi = {
-    name: string;
-    height: string;
-    birth_year: string;
-    gender: string;
-    mass: string;
-    skin_color: string;
-    eye_color: string;
+type ApiCharacter = {
+    name?: string;
+    height?: string;
+    birth_year?: string;
+    gender?: string;
+    mass?: string;
+    skin_color?: string;
+    eye_color?: string;
 };
 
 const AboutMe = () => {
     const { heroId } = useParams();
     const { hero, setHero } = useHeroContext();
 
-    const heroKey = (heroId || hero || "luke").toLowerCase();
-    const current = characters[heroKey];
+    const key = (heroId ?? hero ?? "luke").toLowerCase();
+    const current = characters[key];
 
-    const [data, setData] = useState<CharacterApi | null>(null);
+    const [data, setData] = useState<ApiCharacter | null>(null);
     const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    // Обновляем контекст текущего героя (для меню/хедера)
     useEffect(() => {
-        if (characters[heroKey]) setHero(heroKey);
-    }, [heroKey, setHero]);
+        if (characters[key]) setHero(key);
+    }, [key, setHero]);
 
-    // Тянем данные героя из API с безопасным fallback
     useEffect(() => {
         if (!current?.url) {
             setData(null);
@@ -39,22 +37,26 @@ const AboutMe = () => {
         const ctrl = new AbortController();
 
         (async () => {
+            setLoading(true);
+            setError(null);
+
             try {
-                setLoading(true);
-                setErr(null);
+                const res = await fetch(current.url, { signal: ctrl.signal });
 
-                const r = await fetch(current.url, { signal: ctrl.signal });
-                if (!r.ok) throw new Error("Failed to fetch character data");
+                if (!res.ok) {
 
-                const api = (await r.json()) as CharacterApi;
-                // Мерджим локальные + API (картинка — из локальной базы)
-                setData({ ...api });
-            } catch (e) {
-                if (e instanceof Error && e.name !== "AbortError") {
-                    setErr(e.message || "Failed to load");
+                    setError("Failed to load character from API");
+                    setData(null);
+                    return;
                 }
-                // показываем хотя бы локальные данные (если что-то знаем)
-                setData(null);
+
+                const json: ApiCharacter = await res.json();
+                setData(json);
+            } catch (e) {
+                if ((e as any)?.name !== "AbortError") {
+                    setError("Network error. Showing local data.");
+                }
+
             } finally {
                 setLoading(false);
             }
@@ -63,82 +65,89 @@ const AboutMe = () => {
         return () => ctrl.abort();
     }, [current?.url]);
 
+    const rows = useMemo(
+        () => [
+            { label: "Name",       value: data?.name ?? current?.name },
+            { label: "Height",     value: data?.height },
+            { label: "Birth Year", value: data?.birth_year },
+            { label: "Gender",     value: data?.gender },
+            { label: "Mass",       value: data?.mass },
+            { label: "Skin color", value: data?.skin_color },
+            { label: "Eye color",  value: data?.eye_color },
+        ],
+        [data, current?.name]
+    );
+
     if (!current) {
         return (
-            <main className="container mx-auto px-4 py-10">
-                <div className="rounded-xl border border-white/10 bg-gray-900/70 p-6 text-white">
-                    <h2 className="text-xl font-bold text-yellow-400">Hero not found</h2>
-                </div>
+            <main className="max-w-6xl mx-auto px-4 py-12 text-white">
+                <h2 className="text-2xl font-bold">Hero not found</h2>
+                <Link to="/home/luke" className="text-yellow-300 underline mt-3 inline-block">
+                    Go to Luke
+                </Link>
             </main>
         );
     }
 
-    // Вычисляем значения с учётом fallback: api → локальное из characters → прочерк
-    const value = (k: keyof CharacterApi, fallback?: string) =>
-        (data && (data[k] as string)) || fallback || "—";
-
-    const rows: { label: string; key: keyof CharacterApi; fallback?: string }[] = [
-        { label: "Name", key: "name", fallback: current.name },
-        { label: "Height", key: "height" },
-        { label: "Birth Year", key: "birth_year" },
-        { label: "Gender", key: "gender" },
-        { label: "Mass", key: "mass" },
-        { label: "Skin color", key: "skin_color" },
-        { label: "Eye color", key: "eye_color" },
-    ];
-
     return (
-        <main className="pb-10">
-            {/* Хлебные крошки */}
-            <div className="border-b border-white/10 bg-gray-900/70">
-                <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 py-3 text-sm">
-                    <span className="font-semibold text-yellow-400">STAR • WARS</span>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-200">About Me</span>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-200">{current.name}</span>
-                </div>
-            </div>
+        <main className="max-w-6xl mx-auto px-4 py-10 text-white">
 
-            {/* Карточка с данными */}
-            <section className="mx-auto mt-6 w-full max-w-6xl px-4">
-                <div className="rounded-2xl border border-white/10 bg-gray-900/70 p-8 shadow-2xl ring-1 ring-white/10">
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px,1fr] items-center">
-                        {/* Фото героя */}
-                        <div className="flex justify-center">
-                            <img
-                                src={current.img}
-                                alt={current.name}
-                                className="w-[350px] md:w-[400px] h-auto rounded-2xl border border-white/10 shadow-lg ring-1 ring-white/10"
-                            />
-                        </div>
+            <nav className="text-sm text-white/70 mb-6">
+                <Link to={`/home/${key}`} className="hover:text-white">Home</Link>
+                <span className="mx-2">•</span>
+                <span>About Me</span>
+            </nav>
 
-                        {/* Характеристики */}
-                        <div>
-                            <h2 className="mb-4 text-2xl font-extrabold tracking-wide text-yellow-400">
-                                Profile
-                            </h2>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-yellow-400 mb-8">
+                {current.name}
+            </h1>
 
-                            <div className="overflow-hidden rounded-xl border border-white/10">
-                                <dl className="divide-y divide-white/10">
-                                    {rows.map((r, idx) => (
-                                        <div
-                                            key={r.label}
-                                            className={`grid grid-cols-2 gap-2 px-4 py-3 ${
-                                                idx % 2 === 0 ? "bg-black/20" : "bg-black/10"
-                                            }`}
-                                        >
-                                            <dt className="text-xs font-semibold uppercase text-gray-400 tracking-wide">
-                                                {r.label}
-                                            </dt>
-                                            <dd className="text-sm font-semibold text-gray-100">
-                                                {value(r.key, r.fallback)}
-                                            </dd>
-                                        </div>
-                                    ))}
-                                </dl>
+
+            <section className="rounded-3xl bg-white/5 ring-1 ring-white/10 backdrop-blur-sm p-6 md:p-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {/* аватар слева (на md+) */}
+                    <div className="md:col-span-1 flex justify-center">
+                        <img
+                            src={current.img}
+                            alt={current.name}
+                            className="w-full max-w-xs rounded-2xl shadow-2xl ring-1 ring-white/10 object-cover"
+                        />
+                    </div>
+
+
+                    <div className="md:col-span-2">
+                        {/* состояния загрузки/ошибки */}
+                        {loading && (
+                            <div className="mb-4 text-white/80">Loading character…</div>
+                        )}
+                        {error && (
+                            <div className="mb-4 rounded-lg bg-red-500/15 text-red-200 px-4 py-2">
+                                {error}
                             </div>
+                        )}
+
+                        <div className="overflow-hidden rounded-2xl ring-1 ring-white/10">
+                            <table className="w-full text-left">
+                                <tbody className="divide-y divide-white/10">
+                                {rows.map((row) => (
+                                    <tr key={row.label} className="bg-white/5">
+                                        <th className="w-40 md:w-56 px-4 py-3 text-yellow-300 font-semibold">
+                                            {row.label}
+                                        </th>
+                                        <td className="px-4 py-3 text-white">
+                                            {row.value ?? <span className="text-white/50">—</span>}
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
                         </div>
+
+                        {error && (
+                            <p className="mt-3 text-sm text-white/60">
+                                Using local fallback data.
+                            </p>
+                        )}
                     </div>
                 </div>
             </section>

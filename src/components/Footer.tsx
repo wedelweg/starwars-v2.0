@@ -8,13 +8,13 @@ const Footer = () => {
     return (
         <footer className="mt-14 border-t border-white/10 bg-gray-900/70 text-gray-300">
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between">
-                {/* Brand & Copyright */}
+
                 <div className="text-sm">
                     <span className="font-semibold text-yellow-400">STAR • WARS</span>{" "}
                     fan page — © {year}
                 </div>
 
-                {/* Links */}
+
                 <nav className="flex flex-wrap items-center gap-4 text-sm">
                     <a
                         href="#"
@@ -38,7 +38,7 @@ const Footer = () => {
                         Credits
                     </a>
                     <a
-                        href="https://github.com/"
+                        href="https://github.com/wedelweg/starwars-v2.0"
                         target="_blank"
                         rel="noreferrer"
                         className="hover:text-yellow-300"
@@ -47,7 +47,6 @@ const Footer = () => {
                     </a>
                 </nav>
 
-                {/* Email button */}
                 <div>
                     <button
                         onClick={() => setOpen(true)}

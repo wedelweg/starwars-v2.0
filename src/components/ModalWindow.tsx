@@ -15,13 +15,11 @@ const ModalWindow: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
             aria-modal="true"
             role="dialog"
         >
-            {/* backdrop */}
             <div
                 className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                 onClick={onClose}
             />
 
-            {/* card */}
             <div className="relative z-10 w-[min(92vw,560px)] rounded-2xl border border-yellow-400 bg-gray-900/95 p-6 shadow-2xl">
                 <button
                     onClick={onClose}

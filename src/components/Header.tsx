@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
-import { useHeroContext } from "../utils/useContext"; // ваш хук/контекст
+import { useHeroContext } from "../utils/useContext";
 import { characters } from "../utils/characters";
 
 const Header = () => {
-    const { hero } = useHeroContext();          // из контекста приложения
-    const { heroId: heroFromUrl } = useParams(); // из URL, если попали по прямой ссылке
+    const { hero } = useHeroContext();
+    const { heroId: heroFromUrl } = useParams();
     const heroKey = (heroFromUrl || hero || "luke").toLowerCase();
 
     const [open, setOpen] = useState(false);
