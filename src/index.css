@@ -1,0 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Poller+One&display=swap');
+@import "tailwindcss";
+
+body {
+    font-family: "Poller One", sans-serif;
+    background-image: url("./images/sky.jpg");
+    color: #FFE818;
+    background-attachment: fixed;
+}
